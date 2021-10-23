@@ -31,4 +31,9 @@ class RegisterController extends Controller
 
         return redirect('/login');
     }
+
+    public function chatView()
+    {
+        return view('user.chatView');
+    }
 }

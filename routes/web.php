@@ -19,6 +19,7 @@ Route::get('/', [RegisterController::class, 'index']);
 Route::post('/register', [RegisterController::class, 'register']);
 Route::get('/login', [LoginController::class, 'index'])->name('login');
 Route::post('/login/auth', [LoginController::class, 'login']);
+Route::get('/chatView', [RegisterController::class, 'chatView']);
 
 Route::middleware(['auth:user'])->group(function(){
     Route::get('/home', [UserController::class, 'home']);
@@ -27,6 +28,7 @@ Route::middleware(['auth:user'])->group(function(){
     Route::get('/home/message/{id}/{user}', [ChatController::class, 'chatRoom']);
     Route::post('/home/message/send', [ChatController::class, 'saveMessage']);
     Route::get('/home/message/pull/{id}/{user}', [ChatController::class, 'infiniteChatRoom']);
+    Route::get('/home/message/chats/{id}/{user}', [ChatController::class, 'infineteChats']);
 });
 
 

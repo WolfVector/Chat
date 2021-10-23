@@ -57,7 +57,7 @@ class ChatController extends Controller
         return(($user->id == $user_id) ? true : false);
     }
 
-    private function pullRecentMessages($user_id)
+    private function pullRecentMessages($user_id, $page)
     {
         /*
             SELECT users.username, chats.body, chats.created_at 
@@ -78,9 +78,8 @@ class ChatController extends Controller
             SELECT chats.body, chats.created_at FROM chats JOIN(SELECT MAX(id) AS id FROM chats WHERE chatId IN (SELECT roomId FROM participants WHERE user_id=1) GROUP BY chatId)sub ON chats.id=sub.id JOIN(SELECT user_id FROM participants WHERE roomId IN (SELECT roomId FROM participants WHERE user_id=1) AND user_id!=1)sub2 ON sub2.user_id
             
             SELECT users.username, chats.body, chats.created_at FROM chats JOIN(SELECT MAX(id) AS id, chatId FROM chats WHERE chatId IN (SELECT roomId FROM participants WHERE user_id=1) GROUP BY chatId)sub ON chats.id=sub.id JOIN participants ON participants.roomId=sub.chatId AND user_id!=1 JOIN users ON users.id=participants.user_id;
+            
 
-
-            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
         */
 
         $rooms = Chat::select(DB::raw('MAX(id) as id'), 'chatId')
@@ -100,6 +99,8 @@ class ChatController extends Controller
             })
             ->join('users', 'users.id', '=', 'participants.user_id')
             ->orderBy('chats.created_at', 'desc')
+            ->limit(15)
+            ->offset($page * 15)
             ->get();
 
         return $recent_messages;
@@ -156,13 +157,13 @@ class ChatController extends Controller
                 'to_id' => $id,
                 'user_id' => $user_id,
                 'error' => 'No messages',
-                'recent_messages' => $this->pullRecentMessages($user_id),
+                'recent_messages' => $this->pullRecentMessages($user_id, 0),
                 'messages' => []
             ]);
         }
         
         $qwhere = "chats.chatId=$room_id";
-        $recent_messages = $this->pullRecentMessages($user_id);
+        $recent_messages = $this->pullRecentMessages($user_id, 0);
         $messages = $this->pullMessages(15, $qwhere, $room_id);
         $last_id = $messages[0]->id;
 
@@ -214,12 +215,43 @@ class ChatController extends Controller
             {
                 if($username != $message->username)
                 {
-                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-gray-500 p-1 clear-both text-white rounded float-left m-1"'.$message->body.'</div>';
+                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-1"'.$message->body.'</div>';
                 }
                 else
                 {
-                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-gray-600 p-1 clear-both text-white rounded float-right m-1">'.$message->body.'</div>'; 
+                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">'.$message->body.'</div>'; 
                 }
+            }
+
+            return $result;
+        }
+
+        return redirect('/home/message/'.$id.'/'.$user);
+    }
+
+    public function infiniteChats(Request $request, $id, $user)
+    {
+        $user_id = Auth::guard('user')->user()->id;
+
+        $request->validate([
+            'page' => 'required|numeric',
+            'status' => 'required|alpha|in:all,left'
+        ]);
+
+        if($status == 'all')
+            return response()->json(['html' => '', 'status' => 'all']);
+
+        $recent_messages = $this->pullRecentMessages($user_id, $request->input('page'));
+
+        if($request->ajax())
+        {
+            $result = [];
+            $result['html'] = '';
+            $result['status'] = ($recent_messages->isEmpty()) ? 'all' : 'left';
+
+            foreach($recent_messages as $recent)
+            {
+                $result['html'] .= "<div onclick=\"gotoRoom($recent->id, $recent->username)¸\" class='mb-2 border-b-2 border-gray-300 cursor-pointer hover:bg-gray-700'><div class='text-lg ml-1 mb-2 text-gray-500'>$recent->username</div><div class='text-base text-gray-400 ml-1'>$recent->body</div></div>";
             }
 
             return $result;
