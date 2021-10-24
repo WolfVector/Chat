@@ -4,7 +4,7 @@
     <div class='bg-gray-200 h-full pt-16'>
         <div class='m-auto text-white'>
             <div class='text-2xl text-gray-600 text-center mb-3'>
-                Register
+                Login
             </div>
             <div class='m-auto bg-gray-400 w-96 px-3 py-3 rounded' style="max-height: 600px;">
                 <form action='/login/auth' method='post'>
@@ -18,7 +18,7 @@
             </div>
             <div class='text-center mt-4'>
                 @if($errors->any())
-                    @foreach($errors->all() as $errors)
+                    @foreach($errors->all() as $error)
                         {{ $error }}
                     @endforeach
                 @endif

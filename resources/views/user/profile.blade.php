@@ -60,6 +60,9 @@
             <h2 class="md:w-1/3 mx-auto max-w-sm">Personal info</h2>
             <div class="md:w-2/3 mx-auto max-w-sm space-y-5">
               <div>
+                <form method="post" action="/profile/basicUpdate">
+                  @csrf
+                  @method('PUT')
                 <label class="text-sm text-gray-400">Full name</label>
                 <div class="w-full inline-flex border">
                   <div class="w-1/12 pt-2 bg-gray-100">
@@ -79,6 +82,7 @@
                   </div>
                   <input
                     type="text"
+                    name="name"
                     class="w-11/12 focus:outline-none focus:text-gray-600 p-2"
                     value="{{ $user->name }}"
                   />
@@ -104,13 +108,23 @@
                   </div>
                   <input
                     type="text"
+                    name="username"
                     class="w-11/12 focus:outline-none focus:text-gray-600 p-2"
                     value="{{ $user->username }}"
                     autocomplete="off"
                   />
                 </div>
               </div>
+              <input type="submit" value="Update" class="text-white rounded-md bg-indigo-400 py-2 px-4 mt-2">
+              <div class="text-red-400 text-base">
+                @if($errors->any())
+                    @foreach($errors->all() as $error)
+                        {{ $error }}
+                    @endforeach
+                @endif
+              </div>
             </div>
+            </form>
           </div>
 
           <hr />
@@ -134,11 +148,13 @@
           </div>
 
           <hr />
+          <form action="/profile/passwordUpdate" method="post">
           <div class="md:inline-flex w-full space-y-4 md:space-y-0 p-8 text-gray-500 items-center">
             <h2 class="md:w-4/12 max-w-sm mx-auto">Change password</h2>
-
+              @csrf
+              @method('PUT')
             <div class="md:w-5/12 w-full md:pl-9 max-w-sm mx-auto space-y-5 md:inline-flex pl-2">
-              <div class="w-full inline-flex border-b">
+              <div class="w-full border-b">
                 <div class="w-1/12 pt-2">
                   <svg
                     fill="none"
@@ -156,10 +172,54 @@
                 </div>
                 <input
                   type="password"
+                  name="password"
+                  class="w-11/12 focus:outline-none focus:text-gray-600 p-2 ml-4"
+                  placeholder="Password"
+                />
+                <div class="w-1/12 pt-2">
+                  <svg
+                    fill="none"
+                    class="w-6 text-gray-400 mx-auto"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="password"
+                  name="newPassword"
                   class="w-11/12 focus:outline-none focus:text-gray-600 p-2 ml-4"
                   placeholder="New"
                 />
+                <div class="w-1/12 pt-2">
+                  <svg
+                    fill="none"
+                    class="w-6 text-gray-400 mx-auto"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="password"
+                  name="newPassword_confirmation"
+                  class="w-11/12 focus:outline-none focus:text-gray-600 p-2 ml-4"
+                  placeholder="Confirm New"
+                />
               </div>
+
             </div>
 
             <div class="md:w-3/12 text-center md:pl-6">
@@ -181,6 +241,7 @@
               </button>
             </div>
           </div>
+          </form>
 
           <hr />
           <div class="w-full p-4 text-right text-gray-500">

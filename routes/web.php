@@ -24,7 +24,9 @@ Route::middleware(['auth:user'])->group(function(){
     Route::get('/home', [UserController::class, 'home']);
     Route::get('/logout', [UserController::class, 'logout']);
     Route::get('/profile', [UserController::class, 'profile']);
+    Route::put('/profile/basicUpdate', [UserController::class, 'basicUpdate']);
     Route::put('/profile/changeImage', [UserController::class, 'changeImage']);
+    Route::put('/profile/passwordUpdate', [UserController::class, 'passwordUpdate']);
 
     Route::get('/home/message/{id}/{user}', [ChatController::class, 'chatRoom'])->where(['id' => '[0-9]+', 'user' => '[a-zA-Z_]+']);
     Route::post('/home/message/send', [ChatController::class, 'saveMessage'])->where(['id' => '[0-9]+', 'user' => '[a-zA-Z_]+']);
