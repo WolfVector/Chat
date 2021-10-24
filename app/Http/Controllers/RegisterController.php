@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Image;
 use Illuminate\Support\Facades\Hash;
 
 class RegisterController extends Controller
@@ -29,11 +30,11 @@ class RegisterController extends Controller
         $user->password = Hash::make($request->input('password'));
         $user->save();
 
-        return redirect('/login');
-    }
+        $image = new Image;
+        $image->name = 'default.png';
+        $image->user_id = $user->id;
+        $image->save();
 
-    public function chatView()
-    {
-        return view('user.chatView');
+        return redirect('/login');
     }
 }

@@ -28,8 +28,6 @@ class ChatEvent implements ShouldBroadcast
         $this->room_id = $_room_id;
         $this->sender = $_sender;
         $this->body = $_body;
-
-        //error_log($this->room_id);
     }
 
     /**
@@ -39,12 +37,6 @@ class ChatEvent implements ShouldBroadcast
      */
     public function broadcastOn()
     {
-        //error_log('sssss '.$this->room_id);
         return new PrivateChannel('chatRoom.'.$this->room_id);
     }
-
-    /*public function brodcastAs()
-    {
-        return 'message.new';
-    }*/
 }

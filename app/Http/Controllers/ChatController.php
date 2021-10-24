@@ -128,14 +128,11 @@ class ChatController extends Controller
         $messages = Chat::select('chats.id', 'chats.body', 'chats.created_at', 'users.username')
             ->join('users', 'users.id', '=', 'chats.sender')
             ->whereRaw($qwhere)
-            //->orderBy('chats.created_at', 'desc')
             ->orderBy('chats.id', 'desc')
             ->limit($limit);
-            //->offset($limit * $page);
 
         $last_messages = DB::table(DB::raw("({$messages->toSql()}) as sub"))
             ->mergeBindings($messages->getQuery())
-            //->orderBy('created_at')
             ->orderBy('id')
             ->get();
 
@@ -251,7 +248,7 @@ class ChatController extends Controller
 
             foreach($recent_messages as $recent)
             {
-                $result['html'] .= "<div onclick=\"gotoRoom($recent->id, $recent->username)¸\" class='mb-2 border-b-2 border-gray-300 cursor-pointer hover:bg-gray-700'><div class='text-lg ml-1 mb-2 text-gray-500'>$recent->username</div><div class='text-base text-gray-400 ml-1'>$recent->body</div></div>";
+                $result['html'] .= "<div onclick=\"gotoRoom($recent->id, $recent->username)¸\" class='mb-2 border-b-2 border-gray-300 cursor-pointer hover:bg-gray-300'><div class='text-lg ml-1 mb-2 text-gray-500'>$recent->username</div><div class='text-base text-gray-400 ml-1'>$recent->body</div></div>";
             }
 
             return $result;

@@ -7,13 +7,20 @@
   crossorigin="anonymous"></script>
 
 @section('content')
+<div class="bg-gray-400 py-2 px-3">
+    <div class="text-gray-100 px-1 text-base">
+        <a class="hover:text-gray-500" href="/home">Home</a>
+        <a class="pl-2 hover:text-gray-500" href="/profile">Profile</a>
+        <a class="pl-2 hover:text-gray-500" href="/logout">Logout</a>
+    </div>
+</div>
     <div class="flex h-screen bg-gray-200 px-3 py-3">
         <div class="bg-gray-800 m-auto rounded w-full h-full grid grid-cols-5">
             <div class="border-r-2 border-gray-200" style="background: #edf2f7;">
                 <div id="chats" style="max-height: 600px;" class="my-3 overflow-y-auto">
                     <div id="chatRooms">
                         @foreach($recent_messages as $recent)
-                            <div onclick="gotoRoom({{ $recent->id }}, '{{ $recent->username }}')" class="mb-2 border-b-2 border-gray-300 cursor-pointer hover:bg-gray-700">
+                            <div onclick="gotoRoom({{ $recent->id }}, '{{ $recent->username }}')" class="mb-2 border-b-2 border-gray-300 cursor-pointer hover:bg-gray-300">
                                 <div class="text-lg ml-1 mb-2 text-gray-500">
                                     {{ $recent->username }}
                                 </div>
@@ -239,7 +246,7 @@
                 /* Set scroll top of the previous height, that is, prevent the scroll for
                     changing position
                  */
-                document.getElementById('').scrollTop = previous_height;
+                document.getElementById('messageBox').scrollTop = previous_height;
             },
             error: function(response) {
                 //console.log(response);
@@ -263,19 +270,18 @@
 
                 /* Check if all message haven pulled */
                 infiniteChats_obj.status = response.status;
-                //infiniteChat_obj.page = response.last_id;
 
                 /* Loop through the new elements and get its height (this include padding and margin) */                
-                let previous_height = 0;
+                /*let previous_height = 0;
                 chat_reference.prevAll().each(function() {
                     /* Sum the height of each element */
-                    previous_height += $(this).outerHeight();
-                });
+                   /* previous_height += $(this).outerHeight();
+                });*/
 
                 /* Set scroll top of the previous height, that is, prevent the scroll for
                     changing position
                  */
-                document.getElementById('chatRooms').scrollTop = previous_height;
+                //document.getElementById('chatRooms').scrollTop = previous_height;
             },
             error: function(response) {
                 //console.log(response);
