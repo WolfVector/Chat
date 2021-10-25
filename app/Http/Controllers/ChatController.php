@@ -10,6 +10,7 @@ use App\Models\ChatRoom;
 use App\Models\User;
 use App\Models\Participants;
 use App\Events\ChatEvent;
+use App\Models\Image;
 use Response;
 
 class ChatController extends Controller
@@ -60,25 +61,8 @@ class ChatController extends Controller
     private function pullRecentMessages($user_id, $page)
     {
         /*
-            SELECT users.username, chats.body, chats.created_at 
-            FROM chats
-            JOIN(
-                SELECT MAX(chats.id) AS id, users.id AS user_id
-                FROM chats 
-                JOIN(
-                    SELECT roomId, user_id 
-                    FROM participants
-                    WHERE roomId IN (SELECT roomId FROM participants WHERE user_id=$user_id)
-                    AND user_id!=$user_id
-                )sub ON sub.roomId=chats.chatId 
-                JOIN users ON users.id=sub.user_id
-                GROUP BY chatId
-            )var1 ON var1.id=chats.id JOIN users ON users.id=var1.user_id;
-
-            SELECT chats.body, chats.created_at FROM chats JOIN(SELECT MAX(id) AS id FROM chats WHERE chatId IN (SELECT roomId FROM participants WHERE user_id=1) GROUP BY chatId)sub ON chats.id=sub.id JOIN(SELECT user_id FROM participants WHERE roomId IN (SELECT roomId FROM participants WHERE user_id=1) AND user_id!=1)sub2 ON sub2.user_id
-            
-            SELECT users.username, chats.body, chats.created_at FROM chats JOIN(SELECT MAX(id) AS id, chatId FROM chats WHERE chatId IN (SELECT roomId FROM participants WHERE user_id=1) GROUP BY chatId)sub ON chats.id=sub.id JOIN participants ON participants.roomId=sub.chatId AND user_id!=1 JOIN users ON users.id=participants.user_id;
-            
+        
+            SELECT users.username, chats.body, chats.created_at FROM chats JOIN(SELECT MAX(id) AS id, chatId FROM chats WHERE chatId IN (SELECT roomId FROM participants WHERE user_id=1) GROUP BY chatId)sub ON chats.id=sub.id JOIN participants ON participants.roomId=sub.chatId AND user_id!=1 JOIN users ON users.id=participants.user_id;    
 
         */
 
@@ -88,7 +72,7 @@ class ChatController extends Controller
             })
             ->groupBy('chatId');
 
-        $recent_messages = Chat::select('chats.body', 'users.id', 'users.username', 'chats.created_at')
+        $recent_messages = Chat::select('chats.body', 'users.id', 'users.username', 'chats.created_at', 'images.name AS image_name')
             ->join(DB::raw('('.$rooms->toSql().') as sub'), function($join) use ($rooms) {
                 $join->on('sub.id', '=', 'chats.id')
                 ->addBinding($rooms->getBindings());
@@ -98,6 +82,7 @@ class ChatController extends Controller
                      ->where('participants.user_id', '<>', $user_id);
             })
             ->join('users', 'users.id', '=', 'participants.user_id')
+            ->join('images', 'images.user_id', '=', 'users.id')
             ->orderBy('chats.created_at', 'desc')
             ->limit(15)
             ->offset($page * 15)
@@ -110,7 +95,7 @@ class ChatController extends Controller
     {
         /*
             
-        Obten los ultimos 15 mensajes ordenados por fecha
+        Obten los ultimos 15 mensajes ordenados por id
         Usando un cursor
 
         SELECT * FROM (chats.body, chats.created_at, users.username 
@@ -119,7 +104,6 @@ class ChatController extends Controller
         WHERE chats.chatId=$room_id AND chats.id < $last_id
         ORDER BY chats.created_at DESC
         LIMIT 15
-        OFFSET 15 * $page
         )Var1
         ORDER BY created_at
 
@@ -158,16 +142,21 @@ class ChatController extends Controller
                 'messages' => []
             ]);
         }
+
+        $image = Image::select("name")
+            ->where('user_id', '=', $id)
+            ->first();
         
         $qwhere = "chats.chatId=$room_id";
         $recent_messages = $this->pullRecentMessages($user_id, 0);
-        $messages = $this->pullMessages(15, $qwhere, $room_id);
+        $messages = $this->pullMessages(15, $qwhere, $room_id, $id);
         $last_id = $messages[0]->id;
 
         return view('user.chatRoom', [
             'user' => $user,
             'to_id' => $id,
             'user_id' => $user_id,
+            'user_image' => $image,
             'recent_messages' => $recent_messages,
             'messages' => $messages,
             'last_id' => $last_id

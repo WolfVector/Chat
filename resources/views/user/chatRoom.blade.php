@@ -21,7 +21,8 @@
                     <div id="chatRooms">
                         @foreach($recent_messages as $recent)
                             <div onclick="gotoRoom({{ $recent->id }}, '{{ $recent->username }}')" class="mb-2 border-b-2 border-gray-300 cursor-pointer hover:bg-gray-300">
-                                <div class="text-lg ml-1 mb-2 text-gray-500">
+                                <div class="text-lg flex ml-1 mb-2 text-gray-500">
+                                    <span><img class="w-10 h-10 object-cover rounded-full" src="/storage/{{ $recent->image_name }}"></span>
                                     {{ $recent->username }}
                                 </div>
                                 <div class="text-base text-gray-400 ml-1">
@@ -40,6 +41,7 @@
                   <div class="flex items-center space-x-4">
                      <div class="flex flex-col leading-tight">
                         <div class="text-2xl mt-1 flex items-center">
+                           <span><img class="w-10 h-10 object-cover rounded-full" src="/storage/{{ $user_image->name }}"></span>
                            <span class="text-gray-700 mr-3">{{ $user }}</span>
                         </div>
                      </div>
