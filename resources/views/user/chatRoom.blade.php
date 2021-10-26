@@ -142,24 +142,22 @@
         console.log('CONNECT');
 
         socket.on('App\\Events\\ChatEvent', function(data) {
+            let msgBox = '';    
+
             if(data.sender == from_id)
             {
-                if(data.file != '')
-                {
-                    $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1"><div class="w-40 h-40"><img src="/storage/'+data.file+'"></div><div>'+ data.body +'</div></div>');
-                }
-                else
-                    $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">'+ data.body +'</div>');
+                msgBox = '<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">';
             }
             else
             {
-                if(data.file != '')
-                {
-                    $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 p-1 clear-both text-gray-600 rounded float-left m-1"><div class="w-40 h-40"><img src="/storage/'+data.file+'"></div><div>'+ data.body +'</div></div>');
-                }
-                else
-                    $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 p-1 clear-both text-gray-600 rounded float-left m-1">'+ data.body +'</div>');
+                msgBox = '<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 p-1 clear-both text-gray-600 rounded float-left m-1">';
             }
+
+            if(data.file != '')
+                msgBox += '<div class="w-40 h-40"><img src="/storage/'+data.file+'"></div>';
+            
+            msgBox += '<div>'+ data.body +'</div></div>';
+            $('#messageBox').append(msgBox);
 
             messageBoxScrollBottom();
         });

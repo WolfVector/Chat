@@ -224,12 +224,17 @@ class ChatController extends Controller
             {
                 if($username != $message->username)
                 {
-                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-1"'.$message->body.'</div>';
+                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-1">';
                 }
                 else
                 {
-                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">'.$message->body.'</div>';
+                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">';
                 }
+
+                if($message->file_name)
+                    $result['html'] .= '<div class="w-40 h-40"><img src="/storage/'.$message->file_name.'"></div>';
+
+                $result['html'] .= '<div>'. $message->body .'</div></div>';
             }
 
             return $result;
