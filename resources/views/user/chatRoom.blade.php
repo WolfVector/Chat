@@ -63,13 +63,35 @@
 
                         @foreach($messages as $message)
                             @if($message->username == $user)
-                                <div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-2">
-                                    {{ $message->body }}        
-                                </div>
+                                @if(!empty($message->file_name))
+                                    <div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-2">
+                                        <div class="w-40 h-40">
+                                            <img src="/storage/{{ $message->file_name }}">
+                                        </div>
+                                        <div>
+                                            {{ $message->body }}
+                                        </div>        
+                                    </div>
+                                @else
+                                    <div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-2">
+                                        {{ $message->body }}        
+                                    </div>
+                                @endif
                             @else
-                                <div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">
-                                    {{ $message->body }}
-                                </div>
+                                @if(!empty($message->file_name))
+                                    <div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">
+                                        <div class="w-40 h-40 rounded">
+                                            <img src="/storage/{{ $message->file_name }}">
+                                        </div>
+                                        <div>
+                                            {{ $message->body }}
+                                        </div>
+                                    </div>
+                                @else
+                                    <div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">
+                                        {{ $message->body }}
+                                    </div>
+                                @endif
                             @endif
                         @endforeach
                     </div>
@@ -81,6 +103,13 @@
                         <input type="hidden" name="user_id" id="user_id" value="{{ $user_id }}">
                         <input type="hidden" name="user" id="user" value="{{ $user }}">
                     </div>
+                    <div id="fileList" class="hidden flex text-base text-gray-400 px-2">
+                        
+                    </div>
+                    <label for="file-upload" class="text-base cursor-pointer text-gray-600">
+                        Upload Image
+                    </label>
+                    <input id="file-upload" class="hidden" type="file" onchange="showFileName()" />
                 </div>
             </div>
         </div>
@@ -115,11 +144,21 @@
         socket.on('App\\Events\\ChatEvent', function(data) {
             if(data.sender == from_id)
             {
-                $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-gray-600 p-1 clear-both text-white rounded float-right m-1">'+ data.body +'</div>');
+                if(data.file != '')
+                {
+                    $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1"><div class="w-40 h-40"><img src="/storage/'+data.file+'"></div><div>'+ data.body +'</div></div>');
+                }
+                else
+                    $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">'+ data.body +'</div>');
             }
             else
             {
-                $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-gray-500 p-1 clear-both text-white rounded float-left m-1">'+ data.body +'</div>');
+                if(data.file != '')
+                {
+                    $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 p-1 clear-both text-gray-600 rounded float-left m-1"><div class="w-40 h-40"><img src="/storage/'+data.file+'"></div><div>'+ data.body +'</div></div>');
+                }
+                else
+                    $("#messageBox").append('<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 p-1 clear-both text-gray-600 rounded float-left m-1">'+ data.body +'</div>');
             }
 
             messageBoxScrollBottom();
@@ -136,20 +175,34 @@
     $("#msg").on('keyup', function(e){
         if( e.keyCode === 13 ||e.key === 'Enter')
         {
+            //{headers:{"Content-Type" : "application/json"}}
             let msg = document.getElementById('msg');
+            let img = document.querySelector('#file-upload');
 
-            if(msg.value != '')
+            if(msg.value != '' || img.files[0] != '')
             {
-                window.axios.post('http://localhost:8000/home/message/send', {
+                const obj = {
                     to_id,
                     to,
                     from: from_id,
                     body: msg.value
-                }, {headers:{"Content-Type" : "application/json"}})
+                };
+
+                const json = JSON.stringify(obj);
+                const blob = new Blob([json], { type: 'application/json'});
+
+                const data = new FormData();
+                data.append("json_data", json);
+                data.append("file_data", (img.files[0]) ? img.files[0] : '');
+
+                window.axios.post('http://localhost:8000/home/message/send', data)
                 .then(response => responseMHandler(response))
-                .catch(err => showErrorMsg('ERROR request: there was an error while sending the message'));
+                .catch(err => showErrorMsg('ERROR request: there was an error while sending the message', err));
             }
 
+            removeFile(1);
+
+            img.value = '';
             msg.value = '';
         }
     });
@@ -189,8 +242,10 @@
     }
 
     /* Show the message for 4 seconds */
-    function showErrorMsg(message)
+    function showErrorMsg(message, err)
     {
+        console.log(err);
+
         let element = document.getElementById('errorElement');
         element.innerHTML = message;
         element.style.display = 'block';
@@ -198,6 +253,25 @@
         setTimeout(function() {
             element.style.display = 'none';
         }, 4000);
+    }
+
+    function showFileName()
+    {
+        let file_name = document.getElementById('file-upload').value.split(/[\\]/)[2];
+        file_name = file_name.substring(0, 5) + "...";
+        let file_id = $('fileList').length + 1;
+
+        $('#fileList').show();
+
+        //Append the files
+        $('#fileList').append('<div id="removableFile'+ file_id +'" class="bg-gray-300 flex w-20 rounded"><span class="w-20 text-gray-600">'+ file_name +'</span><span class="cursor-pointer" onclick="removeFile('+ file_id +')"><svg class="fill-current h-4 w-4 text-gray-700" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Cancel</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg></span></div>');        
+    }
+
+    function removeFile(file_id)
+    {
+        $('#removableFile'+file_id).remove();
+        $('#file-upload').val('');
+        $('fileList').hide();
     }
 
     function getChatId()

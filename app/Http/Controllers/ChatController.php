@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use App\Models\Chat;
 use App\Models\ChatRoom;
 use App\Models\User;
 use App\Models\Participants;
 use App\Events\ChatEvent;
 use App\Models\Image;
+use App\Models\Files;
 use Response;
+use Carbon\Carbon;
 
 class ChatController extends Controller
 {
@@ -49,6 +52,25 @@ class ChatController extends Controller
         $participant->save();
     }
 
+    private function saveFile($file, $chat_id)
+    {
+        $username = Auth::guard('user')->user()->username;
+        $user_time = $username.Carbon::now()->toDateTimeString();
+
+        //We make the image name unique
+        $image_name = $chat_id.$user_time.'.'.$file->extension();
+        $path = public_path().'/storage';
+
+        $file->move($path, $image_name);
+
+        $file = new Files;
+        $file->name = $image_name;
+        $file->file_id = 1;
+        $file->save();
+
+        return $file;
+    }
+
     private function checkUserId($username, $user_id)
     {
         $user = User::select('id')
@@ -61,8 +83,8 @@ class ChatController extends Controller
     private function pullRecentMessages($user_id, $page)
     {
         /*
-        
-            SELECT users.username, chats.body, chats.created_at FROM chats JOIN(SELECT MAX(id) AS id, chatId FROM chats WHERE chatId IN (SELECT roomId FROM participants WHERE user_id=1) GROUP BY chatId)sub ON chats.id=sub.id JOIN participants ON participants.roomId=sub.chatId AND user_id!=1 JOIN users ON users.id=participants.user_id;    
+
+            SELECT users.username, chats.body, chats.created_at FROM chats JOIN(SELECT MAX(id) AS id, chatId FROM chats WHERE chatId IN (SELECT roomId FROM participants WHERE user_id=1) GROUP BY chatId)sub ON chats.id=sub.id JOIN participants ON participants.roomId=sub.chatId AND user_id!=1 JOIN users ON users.id=participants.user_id;
 
         */
 
@@ -94,11 +116,11 @@ class ChatController extends Controller
     private function pullMessages($limit, $qwhere,$room_id)
     {
         /*
-            
+
         Obten los ultimos 15 mensajes ordenados por id
         Usando un cursor
 
-        SELECT * FROM (chats.body, chats.created_at, users.username 
+        SELECT * FROM (chats.body, chats.created_at, users.username
         FROM chats
         JOIN users ON users.id=chats.sender
         WHERE chats.chatId=$room_id AND chats.id < $last_id
@@ -109,8 +131,9 @@ class ChatController extends Controller
 
         */
 
-        $messages = Chat::select('chats.id', 'chats.body', 'chats.created_at', 'users.username')
+        $messages = Chat::select('chats.id', 'chats.body', 'chats.created_at', 'users.username', 'files.name AS file_name')
             ->join('users', 'users.id', '=', 'chats.sender')
+            ->leftJoin('files', 'files.id', '=', 'chats.file')
             ->whereRaw($qwhere)
             ->orderBy('chats.id', 'desc')
             ->limit($limit);
@@ -146,7 +169,7 @@ class ChatController extends Controller
         $image = Image::select("name")
             ->where('user_id', '=', $id)
             ->first();
-        
+
         $qwhere = "chats.chatId=$room_id";
         $recent_messages = $this->pullRecentMessages($user_id, 0);
         $messages = $this->pullMessages(15, $qwhere, $room_id, $id);
@@ -195,7 +218,7 @@ class ChatController extends Controller
             $result = [];
             $result['html'] = '';
             $result['status'] = ($last_messages->isEmpty()) ? 'all' : 'left';
-            $result['last_id'] = ($result['status'] == 'all') ? $page : $last_messages[0]->id; 
+            $result['last_id'] = ($result['status'] == 'all') ? $page : $last_messages[0]->id;
 
             foreach($last_messages as $message)
             {
@@ -205,7 +228,7 @@ class ChatController extends Controller
                 }
                 else
                 {
-                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">'.$message->body.'</div>'; 
+                    $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">'.$message->body.'</div>';
                 }
             }
 
@@ -251,27 +274,40 @@ class ChatController extends Controller
     public function saveMessage(Request $request)
     {
         $request->validate([
-            'to' => 'required|alpha_dash',
-            'from' => 'required|alpha_dash',
-            'body' => 'required',
-            'to_id' => 'required|integer'
+            'json_data' => 'required',
+            'file_data' => 'nullable|image|max:1999'
         ]);
 
+        $json_data = json_decode($request->input('json_data'), true);
+        $json_data['file_data'] = $request->file_data;
+
+        Validator::make($json_data, [
+            'to' => 'required|alpha_dash',
+            'from' => 'required|alpha_dash',
+            'body' => 'required_if:file_data,null',
+            'to_id' => 'required|integer'
+        ])->validate();
+
         /* Check if the given id match the user */
-        if(!$this->checkUserId($request->input('to'), $request->input('to_id')))
+        if(!$this->checkUserId($json_data['to'], $json_data['to_id']))
             return response()->json(['status' => 'ERROR', 'message' => 'There was a problem while sending the message to the given user']);
 
-        $chat_id = $this->formChatId($request->input('to_id'), $request->user()->id);
+        $chat_id = $this->formChatId($json_data['to_id'], $request->user()->id);
         $room_id =$this->getChatId($chat_id);
-        if($room_id == null) $room_id = $this->createRoomId($chat_id, $request->input('to_id'), $request->user()->id);
+        if($room_id == null) $room_id = $this->createRoomId($chat_id, $json_data['to_id'], $request->user()->id);
+
+        $file = null;
+        if($request->file_data) $file = $this->saveFile($request->file_data, $chat_id);
 
         $chat = new Chat;
         $chat->sender = $request->user()->id;
         $chat->chatId = $room_id;
-        $chat->body = $request->input('body');
+        $chat->body = $json_data['body'];
+
+        if($file != null) $chat->file = $file->id;
         $chat->save();
 
-        ChatEvent::dispatch($chat_id, $request->user()->id, $request->input('body'));
+        ChatEvent::dispatch($chat_id, $request->user()->id, $json_data['body'], (($file) ? $file->name : ''));
 
         return response()->json(['status' => 'OK', 'message' => 'OK']);
     }

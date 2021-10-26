@@ -23,6 +23,9 @@ class CreateChatsTable extends Migration
 
             $table->text('body');
             $table->timestamps();
+
+            $table->unsignedBigInteger('file');
+            $table->foreign('file')->references('id')->on('files');
         });
     }
 
