@@ -26,7 +26,11 @@
                                     {{ $recent->username }}
                                 </div>
                                 <div class="text-base text-gray-400 ml-1">
-                                    {{ $recent->body }}
+                                    @if(!empty($recent->file_name) && $recent->body == '')
+                                        <strong>An image was sent</strong>
+                                    @else
+                                        {{ $recent->body }}
+                                    @endif
                                 </div>
                             </div>
                         @endforeach 

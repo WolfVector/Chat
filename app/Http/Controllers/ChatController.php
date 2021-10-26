@@ -94,7 +94,7 @@ class ChatController extends Controller
             })
             ->groupBy('chatId');
 
-        $recent_messages = Chat::select('chats.body', 'users.id', 'users.username', 'chats.created_at', 'images.name AS image_name')
+        $recent_messages = Chat::select('chats.body', 'users.id', 'users.username', 'chats.created_at', 'images.name AS image_name', 'files.name AS file_name')
             ->join(DB::raw('('.$rooms->toSql().') as sub'), function($join) use ($rooms) {
                 $join->on('sub.id', '=', 'chats.id')
                 ->addBinding($rooms->getBindings());
@@ -105,6 +105,7 @@ class ChatController extends Controller
             })
             ->join('users', 'users.id', '=', 'participants.user_id')
             ->join('images', 'images.user_id', '=', 'users.id')
+            ->leftJoin('files', 'files.id', '=', 'chats.file')
             ->orderBy('chats.created_at', 'desc')
             ->limit(15)
             ->offset($page * 15)
