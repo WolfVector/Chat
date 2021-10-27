@@ -198,7 +198,8 @@ class ChatController extends Controller
 
         $request->validate([
             'page' => 'required|numeric',
-            'status' => 'required|alpha|in:all,left'
+            'status' => 'required|alpha|in:all,left',
+            'date' => 'date'
         ]);
 
         $page = ($request->has('page')) ? $request->input('page') : 0;
@@ -216,13 +217,27 @@ class ChatController extends Controller
         if($request->ajax())
         {
             $username = $request->user()->username;
+            $first_date = Carbon::parse($request->input('date'));
             $result = [];
-            $result['html'] = '';
-            $result['status'] = ($last_messages->isEmpty()) ? 'all' : 'left';
+
+            $is_empty = $last_messages->isEmpty();
+            $result['html'] = ($is_empty) ? '<div class="text-base clear-both text-gray-400 text-center">'.$first_date->format('d/m/Y').'</div>' : '';
+            $result['status'] = ($is_empty) ? 'all' : 'left';
             $result['last_id'] = ($result['status'] == 'all') ? $page : $last_messages[0]->id;
+            $result['last_date'] = ($is_empty) ? $first_date : $last_messages[0]->created_at;
+
+            $date_var = ($last_messages->count() > 0) ? Carbon::parse($last_messages[0]->created_at) : '';
 
             foreach($last_messages as $message)
             {
+                $next_date = Carbon::parse($message->created_at);
+
+                if(!$next_date->isSameDay($date_var))
+                {
+                    $result['html'] .= '<div class="text-base clear-both text-gray-400 text-center">'.$next_date->format('d/m/Y').'</div>';
+                    $date_var = $next_date;
+                }
+
                 if($username != $message->username)
                 {
                     $result['html'] .= '<div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-1">';
@@ -235,7 +250,7 @@ class ChatController extends Controller
                 if($message->file_name)
                     $result['html'] .= '<div class="w-40 h-40"><img src="/storage/'.$message->file_name.'"></div>';
 
-                $result['html'] .= '<div>'. $message->body .'</div></div>';
+                $result['html'] .= '<div>'. $message->body .'</div><div class="float-right text-sm text-gray-400">'.Carbon::parse($next_date)->format("H:i").'</div></div>';
             }
 
             return $result;

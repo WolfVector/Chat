@@ -65,38 +65,41 @@
                             ...
                         </div>
 
+                        @php($date_var = Carbon\Carbon::parse($messages[0]->created_at) )
+                        @php($first_date = $messages[0]->created_at)
+
+                        @if($messages->count() < 15)
+                            <div class="text-base clear-both text-gray-400 text-center">{{ $date_var->format('d/m/Y') }}</div>
+                        @endif
+
                         @foreach($messages as $message)
-                            @if($message->username == $user)
-                                @if(!empty($message->file_name))
-                                    <div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-2">
-                                        <div class="w-40 h-40">
-                                            <img src="/storage/{{ $message->file_name }}">
-                                        </div>
-                                        <div>
-                                            {{ $message->body }}
-                                        </div>        
-                                    </div>
-                                @else
-                                    <div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-2">
-                                        {{ $message->body }}        
-                                    </div>
-                                @endif
-                            @else
-                                @if(!empty($message->file_name))
-                                    <div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">
-                                        <div class="w-40 h-40 rounded">
-                                            <img src="/storage/{{ $message->file_name }}">
-                                        </div>
-                                        <div>
-                                            {{ $message->body }}
-                                        </div>
-                                    </div>
-                                @else
-                                    <div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">
-                                        {{ $message->body }}
-                                    </div>
-                                @endif
+
+                            @php($next_date = \Carbon\Carbon::parse($message->created_at))
+                            @if(!$next_date->isSameDay($date_var))
+                                @php($date_var = $next_date)
+                                <div class="text-base clear-both text-gray-400 text-center">{{ $date_var->format('d/m/Y') }}</div>                                
                             @endif
+
+                            @if($message->username == $user)
+                                <div style="min-width: 10%; max-width: 50%;" class="bg-gray-300 text-gray-600 p-1 clear-both rounded float-left m-2">
+                            @else
+                                <div style="min-width: 10%; max-width: 50%;" class="bg-blue-600 p-1 clear-both text-white rounded float-right m-1">
+                            @endif
+
+                            @if(!empty($message->file_name))
+                                <div class="w-40 h-40">
+                                    <img src="/storage/{{ $message->file_name }}">
+                                </div>
+                            @endif
+
+                            <div>
+                                {{ $message->body }}
+                            </div>
+                            <div class="float-right text-sm text-gray-400">
+                                {{ $next_date->format('H:i') }}
+                            </div>
+                            </div>        
+
                         @endforeach
                     </div>
                 </div>
@@ -127,6 +130,7 @@
 
     let infinite_obj = {
         page: {{ $last_id }},
+        last_date: "{{ $first_date }}",
         status: 'left'
     }
 
@@ -300,7 +304,7 @@
     function infiniteLoadMessages()
     {
         $.ajax({
-            url: "{{ url('/') }}/home/message/pull/"+to_id+"/"+to+'?page='+infinite_obj.page+'&status='+infinite_obj.status,
+            url: "{{ url('/') }}/home/message/pull/"+to_id+"/"+to+'?page='+infinite_obj.page+'&date='+infinite_obj.last_date+'&status='+infinite_obj.status,
             datatype: "html",
             type: 'get',
             beforeSend: function() {
@@ -313,6 +317,7 @@
                 /* Check if all message haven pulled */
                 infinite_obj.status = response.status;
                 infinite_obj.page = response.last_id;
+                infinite_obj.last_date = response.last_date;
 
                 /* Loop through the new elements and get its height (this include padding and margin) */                
                 let previous_height = 0;
