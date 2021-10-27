@@ -65,11 +65,15 @@
                             ...
                         </div>
 
-                        @php($date_var = Carbon\Carbon::parse($messages[0]->created_at) )
-                        @php($first_date = $messages[0]->created_at)
+                        @php($first_date = "")
+                        @if($messages->count() > 0)
+                            @php($date_var = Carbon\Carbon::parse($messages[0]->created_at) )
+                            @php($first_date = $messages[0]->created_at)
+                            
+                            @if($messages->count() < 15)
+                                <div class="text-base clear-both text-gray-400 text-center">{{ $date_var->format('d/m/Y') }}</div>
+                            @endif
 
-                        @if($messages->count() < 15)
-                            <div class="text-base clear-both text-gray-400 text-center">{{ $date_var->format('d/m/Y') }}</div>
                         @endif
 
                         @foreach($messages as $message)

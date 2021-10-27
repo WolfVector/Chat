@@ -15,6 +15,7 @@ use App\Models\Image;
 use App\Models\Files;
 use Response;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class ChatController extends Controller
 {
@@ -154,6 +155,10 @@ class ChatController extends Controller
         $user_id = Auth::guard('user')->user()->id;
         $chat_id = $this->formChatId($id, $user_id);
 
+        $image = Image::select("name")
+            ->where('user_id', '=', $id)
+            ->first();
+
         $room_id = $this->getChatId($chat_id);
         if($room_id == null)
         {
@@ -162,14 +167,12 @@ class ChatController extends Controller
                 'to_id' => $id,
                 'user_id' => $user_id,
                 'error' => 'No messages',
+                'user_image' => $image,
                 'recent_messages' => $this->pullRecentMessages($user_id, 0),
-                'messages' => []
+                'messages' => collect([]),
+                'last_id' => 0
             ]);
         }
-
-        $image = Image::select("name")
-            ->where('user_id', '=', $id)
-            ->first();
 
         $qwhere = "chats.chatId=$room_id";
         $recent_messages = $this->pullRecentMessages($user_id, 0);
